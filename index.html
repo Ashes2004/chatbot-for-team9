@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edubot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 960px;
+      width: 100%;
+      border-left: 1px solid #d1d5db;
+      border-right: 1px solid #d1d5db;
+      background-color: #ffffff;
+    }
+
+    header {
+      background-color: #1f2937;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    main {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .chat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+
+    .bot-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+      font-weight: bold;
+      color: #6b7280;
+    }
+
+    .bot-icon {
+      width: 24px;
+      height: 24px;
+      background-color: #2563eb;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .typing {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #6b7280;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background-color: #6b7280;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: scale(0);
+      }
+      40% {
+        transform: scale(1);
+      }
+    }
+
+    footer {
+      padding: 1rem;
+      background-color: #f9fafb;
+      border-top: 1px solid #d1d5db;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+    }
+
+    button {
+      padding: 0.75rem 1rem;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <header>Edubot</header>
+
+    <main id="chat">
+      <div class="chat-box" id="chatBox"></div>
+    </main>
+
+    <footer>
+      <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chatBox');
+    const userInput = document.getElementById('userInput');
+
+    function addMessage(text, type) {
+      const msg = document.createElement('div');
+      msg.className = `message ${type}`;
+
+      if (type === 'bot') {
+        const header = document.createElement('div');
+        header.className = 'bot-header';
+        header.innerHTML = `<div class="bot-icon">🤖</div>Edubot:`;
+        msg.appendChild(header);
+
+        const botText = document.createElement('div');
+        botText.innerHTML = marked.parse(text);
+        msg.appendChild(botText);
+      } else {
+        msg.textContent = text;
+      }
+
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showTyping() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'typing';
+      typingDiv.id = 'typingIndicator';
+      typingDiv.innerHTML = `
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <span>Typing...</span>
+      `;
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function hideTyping() {
+      const typing = document.getElementById('typingIndicator');
+      if (typing) chatBox.removeChild(typing);
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      addMessage(text, 'user');
+      userInput.value = '';
+      showTyping();
+
+      try {
+        const res = await fetch('http://localhost:3000/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+        hideTyping();
+        addMessage(data.response, 'bot');
+      } catch (err) {
+        hideTyping();
+        addMessage("Something went wrong. Please try again later.", 'bot');
+      }
+    }
+
+    userInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    
+    window.onload = () => {
+      addMessage("Hello. This is Chatbot, assisting with your Mentor-Student Connect session. Please let me know how I can help facilitate a productive discussion between you and your mentor.", 'bot');
+    };
+  </script>
+</body>
+</html>
