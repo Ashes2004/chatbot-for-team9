@@ -185,7 +185,7 @@
       if (type === 'bot') {
         const header = document.createElement('div');
         header.className = 'bot-header';
-        header.innerHTML = `<div class="bot-icon">🤖</div>Edubot:`;
+        header.innerHTML = `<div class="bot-icon">🤖</div>Chatbot:`;
         msg.appendChild(header);
 
         const botText = document.createElement('div');
@@ -227,7 +227,7 @@
       showTyping();
 
       try {
-        const res = await fetch('http://localhost:3000/api/ai', {
+        const res = await fetch('https://chatbot-for-srijita.vercel.app/api/ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text })
